@@ -54,7 +54,11 @@
 	(lambda (num div den)
 	  (/ num den)))
        done))
-
+(define <Number>
+   (new (*parser <int>)
+	(*parser <rat>)
+	(*disj 2)
+	done))
 
 #;this_is_the_string_part--------------------------------------------------------------------------------------------
   
@@ -77,13 +81,8 @@
        (*parser (^<meta-char> "\\n" #\newline))
        (*parser (^<meta-char> "\\r" #\return))
        (*parser (^<meta-char> "\\t" #\tab))
-       (*parser (^<meta-char> "\\f" #\page)) ; formfeed
-       (*parser (^<meta-char> "\\{lambda}" (integer->char 955)))
-       (*parser (^<meta-char> "\\{alef}" (integer->char 1488)))
-       (*parser (^<meta-char> "\\{bismillah}" (integer->char 65021)))
-       (*parser (^<meta-char> "\\{smiley}" (integer->char 9786)))
-
-       (*disj 10)
+       (*parser (^<meta-char> "\\f" #\page)) 
+       (*disj 6)
        done))
 
   
@@ -113,4 +112,51 @@
 	  (list->string chars)))
 
        done))
-  
+       
+
+#;this_is_the_boolean_part--------------------------------------------------------------------------------------------
+
+(define <Boolean>
+    (new (*parser (word "#t"))
+	 (*pack (lambda (_) #t))
+	 
+	 (*parser (word "#f"))
+	 (*pack (lambda (_) #f))
+	 
+	 (*disj 2)
+	 done))
+	 
+#;this_is_the_lists_and_vectors_part--------------------------------------------------------------------------------------------
+
+(define <ProperList>
+ (new (*parser  (char #\())
+ 
+      (*delayed (lambda () <Sexpr>))
+      (*parser (char #\ )) 
+      *star
+      
+      (*caten 2)
+      (*pack-with (lambda (ex spaces) ex))
+      *star 
+      
+      (*parser  (char #\)))    
+      (*caten 3)   
+      (*pack-with
+	(lambda (open exps close)
+	  `(,@exps)))
+			      
+      done))
+      
+      
+#;this_is_the_Sexpr--------------------------------------------------------------------------------------------     
+      
+(define <Sexpr>
+    (new (*parser <Number>)
+	 (*parser <String>)
+	 (*parser <Boolean>)
+	 (*parser <ProperList>)
+	 
+	 (*disj 4)
+	 
+	 done))
+	 
