@@ -127,16 +127,20 @@
 	 done))
 	 
 #;this_is_the_lists_and_vectors_part--------------------------------------------------------------------------------------------
-
-(define <ProperList>
- (new (*parser  (char #\())
- 
+(define <ListElement>
+  (new 
       (*delayed (lambda () <Sexpr>))
       (*parser (char #\ )) 
       *star
       
       (*caten 2)
       (*pack-with (lambda (ex spaces) ex))
+    done))
+    
+(define <ProperList>
+ (new (*parser  (char #\())
+ 
+      (*parser <ListElement>)
       *star 
       
       (*parser  (char #\)))    
@@ -146,6 +150,73 @@
 	  `(,@exps)))
 			      
       done))
+
+      
+(define <ImproperList>
+ (new (*parser  (char #\())
+ 
+      (*parser <ListElement>)
+      *plus
+      
+      (*parser (char #\.))
+      (*parser (char #\ ))
+      *star
+      
+      (*parser <ListElement>)
+      
+      (*parser  (char #\)))    
+      (*caten 6)   
+      (*pack-with
+	(lambda (open exps dot spc ex close)
+	  `(,@exps . ,ex)))
+			      
+      done))
+      
+(define <Vector>
+  (new (*parser (char #\#))
+       (*parser <ProperList>)
+       (*caten 2)
+       (*pack-with
+	(lambda (sharp lst) 
+	  (list->vector lst)))
+  done))
+
+ (define <Quoted>
+    (new  (*parser  (char #\'))
+	  (*delayed (lambda () <Sexpr>))
+	  (*caten 2)
+	  (*pack-with
+	    (lambda (sign ex)
+	     (list 'quote ex)))
+	  done))    
+	      
+(define <QuasiQuoted>
+    (new  (*parser  (char #\`))
+	  (*delayed (lambda () <Sexpr>))
+	  (*caten 2)
+	  (*pack-with
+	    (lambda (sign ex)
+	     (list 'quasiquote ex)))
+	  done))  	 
+
+(define <Unquoted>
+    (new  (*parser  (char #\,))
+	  (*delayed (lambda () <Sexpr>))
+	  (*caten 2)
+	  (*pack-with
+	    (lambda (sign ex)
+	     (list 'unquote ex)))
+	  done))  	 
+	  
+(define <UnquoteAndSpliced>
+    (new  (*parser  (word ",@"))
+	  (*delayed (lambda () <Sexpr>))
+	  (*caten 2)
+	  (*pack-with
+	    (lambda (sign ex)
+	     (list 'unquote-splicing ex)))
+	  done)) 
+       
       
       
 #;this_is_the_Sexpr--------------------------------------------------------------------------------------------     
@@ -155,8 +226,15 @@
 	 (*parser <String>)
 	 (*parser <Boolean>)
 	 (*parser <ProperList>)
+	 (*parser <ImproperList>)
+	 (*parser <Vector>)
+	 (*parser <Quoted>)
+	 (*parser <QuasiQuoted>)
+	 (*parser <Unquoted>)
+	 (*parser <UnquoteAndSpliced>)
 	 
-	 (*disj 4)
+	 
+	 (*disj 10)
 	 
 	 done))
 	 
