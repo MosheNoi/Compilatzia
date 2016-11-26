@@ -506,8 +506,9 @@
 
 (define <InfixArrayGet>
     (new
-    
+	(*delayed (lambda () <InfixFunCall2>))
 	(*parser <InfixParen>)
+	(*disj 2)
 	(*parser (char #\[))
         (*delayed (lambda () <InfixExpression>))
 	(*parser (char #\]))
@@ -547,7 +548,7 @@
     (*pack-with (lambda (first rest)
 		  `(,first ,@rest)))
     
-    (*parser <epsilon>)
+    (*parser (^<skipped*> (new (*parser <epsilon>)done)))
     (*disj 2)
 		  done))
 
@@ -585,6 +586,32 @@
         (*parser <InfixArrayGet>)			
 	(*disj 2)
 	done))  
+	
+(define <InfixFunCall2>
+  (new 
+	(*parser <InfixParen>)
+	(*parser (char #\())
+	(*parser <InfixArgList>)
+	(*parser (char #\)))
+	(*caten 3)
+	(*pack-with (lambda (open args close)
+			  args))
+			  
+	(*caten 2)
+	(*pack-with (lambda (func args)
+			`(,func ,@args)))
+			
+	(*parser (char #\())
+	(*parser <InfixArgList>)
+	(*parser (char #\)))
+	(*caten 3)
+	(*pack-with (lambda (open args close)
+			  args))
+	*star
+	(*caten 2)
+	(*pack-with SetFuncCallsOrder)
+
+	done))  	
 #;This_is_the_Power_part---------------------------------------------------------------------------------------------
 (define <PowerSymbol>
 (^<skipped*>
@@ -624,8 +651,13 @@
 
 #;this_is_the_infix_neg----------------------------------------------------------------------------------------
 
-(define <InfixNeg>
+(define <NegSign>
+ (^<skipped*>
     (new (*parser (char #\-))
+     done)))
+
+(define <InfixNeg>
+    (new (*parser <NegSign>)
          (*parser <InfixPow>)
          (*caten 2)
          (*pack-with (lambda (minus ex) 
@@ -733,4 +765,4 @@
 	 (*disj 13)
 	 
 	 done)))
-	 
+(define <sexpr-2> <Sexpr>)
