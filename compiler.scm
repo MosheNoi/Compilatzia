@@ -1,11 +1,25 @@
 (load "~/Projects/Compilatzia/pc.scm")
 
-#;this_is_part_of_the_skeleton----------------------------------------------------------------------------------------
+#;this_is_the_whitespaces_part----------------------------------------------------------------------------------------
 
 (define <whitespace>
   (const
    (lambda (ch)
      (char<=? ch #\space))))
+
+
+(define ^^<wrapped>
+  (lambda (<wrapper>)
+    (lambda (<p>)
+      (new (*parser <wrapper>)
+	   (*parser <p>)
+	   (*parser <wrapper>)
+	   (*caten 3)
+	   (*pack-with
+	    (lambda (_left e _right) e))
+	   done))))
+ 
+
 
 (define <line-comment>
   (let ((<end-of-line-comment>
@@ -25,9 +39,10 @@
 
 (define <sexpr-comment>
   (new (*parser (word "#;"))
-       (*delayed (lambda () <Sexpr>))
+       (*delayed (lambda () <sexpr>))
        (*caten 2)
        done))
+      
 
 (define <comment>
   (disj <line-comment>
@@ -37,22 +52,7 @@
   (disj <comment>
 	<whitespace>))
 
-(define ^^<wrapped>
-  (lambda (<wrapper>)
-    (lambda (<p>)
-      (new (*parser <wrapper>)
-	   (*parser <p>)
-	   (*parser <wrapper>)
-	   (*caten 3)
-	   (*pack-with
-	    (lambda (_left e _right) e))
-	   done))))
-
-(define ^<skipped*> (^^<wrapped> (star <skip>)))
-
-
-
-
+(define ^<skipped*> (^^<wrapped> (star <skip>)))	
 #;this_is_the_symbol_part--------------------------------------------------------------------------------------------
 
 	  
@@ -109,16 +109,19 @@
        (*disj 2)
        *diff
 	done))
-  
+	
+
 (define <nat>
   (new (*parser (char #\0))
-       (*pack (lambda (_) 0))
-
+       (*parser <end-of-input>)
+       (*caten 2)
+       (*pack-with (lambda (ch end) 0))
+       (*parser (char #\0)) *star
        (*parser <digit-1-9>)
        (*parser <digit-0-9>) *star
-       (*caten 2)
+       (*caten 3)
        (*pack-with
-	(lambda (a s)
+	(lambda (z a s)
 	  (string->number
 	   (list->string
 	    `(,a ,@s)))))
@@ -147,6 +150,8 @@
        
 (define <rat>
   (new (*parser <int>)
+       (*parser (char #\0)) (*pack (lambda (ch) 0))
+       (*disj 2)
        (*parser (char #\/))
        (*parser <nat>)
        (*guard (lambda (n) (not (zero? n))))
@@ -174,20 +179,11 @@
   (range #\a #\f))
   
 (define <chars-A-Z>
+
   (range #\A #\Z))
   
-(define get-ascii-code
-  (lambda (ch) (cond 
-	((equal? ch "nul") (char->integer #\nul))
-	((equal? ch "lambda") 955)
-	((equal? ch "newline") (char->integer #\newline))
-	((equal? ch "page") (char->integer #\page))
-	((equal? ch "space") (char->integer #\space))
-	((equal? ch "tab") (char->integer #\tab))
-	((equal? ch "return") (char->integer #\return)))))
-  
 
-       
+        
 (define <CharPrefix>
   (new (*parser (word "#\\"))
       done))
@@ -225,21 +221,29 @@
        (*caten 2)
        (*pack-with 
        (lambda (_ lst)
-       (integer->char (string->number (list->string lst) 16))))
+       (string->number (list->string lst) 16)))
+       (*guard (lambda (x) (and (<= x 1114111) (>= x 0))))
+       (*pack integer->char)
 	  done))
 	  	 
-	 
-(define <VisibleSimpleChar> 
-  (range #\! #\delete))
+  
+(define <VisibleSimpleChar>
+  (new (*parser <any-char>)
+       (*guard 
+       (lambda (a) (char>? a #\space)))
+       (*parser <digit-0-9>)
+       (*parser <chars-a-z>)
+       (*disj 2)
+       *not-followed-by
+       done)) 
 	  
 (define <Char>
 (^<skipped*>
   (new (*parser <CharPrefix>) 
-  
        (*parser <HexUnicodeChar>)
        (*parser <NamedChar>)
        (*parser <VisibleSimpleChar>)
-       (*disj 3) 
+       (*disj 3)
        (*caten 2)
        (*pack-with
 	(lambda (pre ch) 
@@ -346,15 +350,10 @@
 (define <ImproperList>
  (new 
       (*parser  (char #\())
- 
       (*delayed (lambda () <Sexpr>))
-      *plus
-      
-      (*parser (char #\.))
-
-      
-      (*delayed (lambda () <Sexpr>))
-      
+      *plus      
+      (*parser (char #\.))     
+      (*delayed (lambda () <Sexpr>))      
       (*parser  (char #\)))    
       (*caten 5)   
       (*pack-with
@@ -747,8 +746,8 @@
 (define <Sexpr>
 (^<skipped*>
     (new 
-	 (*parser <Number>)
-	 (*parser <Symbol>)
+         (*parser <Number>)
+         (*parser <Symbol>)
 	 (*parser <Boolean>)
 	 (*parser <String>)
 	 (*parser <Char>)
@@ -765,4 +764,6 @@
 	 (*disj 13)
 	 
 	 done)))
-(define <sexpr-2> <Sexpr>)
+
+(define <sexpr> <Sexpr>)	 
+
