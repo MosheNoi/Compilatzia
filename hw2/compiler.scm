@@ -64,7 +64,11 @@
 			((= (length lst) 1) (car lst))
 			((= (length lst) 2) `(if ,(car lst) ,(cadr lst) #f))
 			(else (ChangeThisAndToANestedIf lst)))))
-            
+ 
+(define getBodies (lambda (lst)
+		    (if (= (length lst) 1) 
+			lst)))
+			
             
 (define parse
 	(let ((run 
@@ -117,9 +121,9 @@
 				#;----------------------------------------special-forms--------------------------------------------------
 				
 			        (pattern-rule
-				       `(let  ,(? 'keyAndValues) ,(? 'bodies))
+				        (cons 'let (cons (? 'keyAndValues) (? 'bodies)))
 				        (lambda (keyAndValues bodies) 
-						(parse (cons (list 'lambda (getLetKeys keyAndValues) bodies) (getLetVals keyAndValues))))) 
+						(parse (cons `(lambda ,(getLetKeys keyAndValues) ,@bodies) (getLetVals keyAndValues)))))
 				
 				(pattern-rule 
 				       (cons 'and (? 'exprs))
